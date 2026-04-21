@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import {
   useAuth,
   SignInButton,
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
-import { useRepoAnalysis } from "@/hooks/useRepoAnalysis";
+import { useAgentAnalysis } from "@/hooks/useAgentAnalysis";
+import { ProgressStream } from "@/components/analysis/ProgressStream";
+import { TechStackBadges } from "@/components/analysis/TechStackBadges";
+import type { RepoMetadata, TreeItem } from "@/lib/github/types";
+import { isValidGithubUrl } from "@/lib/utils/parseGithubUrl";
 
 const exampleRepos = [
   "https://github.com/vercel/next.js",
@@ -33,11 +38,52 @@ const features = [
 
 export default function HomePage() {
   const { userId } = useAuth();
-  const { url, setUrl, isLoading, error, repoData, treeData, step, analyzeRepo } =
-    useRepoAnalysis();
+  const [url, setUrl] = useState("");
+  const [repoData, setRepoData] = useState<RepoMetadata | null>(null);
+  const [treeData, setTreeData] = useState<TreeItem[] | null>(null);
+  const {
+    isLoading,
+    error,
+    steps,
+    result,
+    currentStep,
+    startAnalysis,
+  } = useAgentAnalysis();
   const totalFiles = treeData?.filter((item) => item.type === "blob").length ?? 0;
   const totalFolders = treeData?.filter((item) => item.type === "tree").length ?? 0;
   const topPaths = treeData?.slice(0, 10) ?? [];
+
+  const handleAnalyze = async () => {
+    const trimmedUrl = url.trim();
+    if (!isValidGithubUrl(trimmedUrl)) {
+      return;
+    }
+
+    const [repoResponse, treeResponse] = await Promise.all([
+      fetch("/api/github/repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      }),
+      fetch("/api/github/tree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      }),
+    ]);
+
+    if (repoResponse.ok) {
+      const payload = (await repoResponse.json()) as { repo: RepoMetadata };
+      setRepoData(payload.repo);
+    }
+
+    if (treeResponse.ok) {
+      const payload = (await treeResponse.json()) as { tree: TreeItem[] };
+      setTreeData(payload.tree);
+    }
+
+    await startAnalysis(trimmedUrl);
+  };
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white">
@@ -92,7 +138,7 @@ export default function HomePage() {
             className="mt-8 w-full"
             onSubmit={(event) => {
               event.preventDefault();
-              void analyzeRepo(url);
+              void handleAnalyze();
             }}
           >
             <div className="flex w-full flex-col gap-3 sm:flex-row">
@@ -120,9 +166,6 @@ export default function HomePage() {
               </button>
             </div>
             {error ? <p className="mt-3 text-left text-sm text-red-400">{error}</p> : null}
-            {isLoading && step ? (
-              <p className="mt-3 text-left text-sm text-zinc-300">{step}</p>
-            ) : null}
           </form>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -181,6 +224,35 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
+          </section>
+        ) : null}
+
+        {isLoading ? (
+          <ProgressStream
+            steps={steps}
+            currentStep={currentStep}
+            isLoading={isLoading}
+          />
+        ) : null}
+
+        {result ? (
+          <section className="mx-auto mt-4 w-full max-w-3xl space-y-4">
+            <article className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6">
+              <h3 className="text-lg font-semibold text-white">Tech Stack</h3>
+              <div className="mt-4">
+                <TechStackBadges techStack={result.techStack} />
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6">
+              <h3 className="text-lg font-semibold text-white">Summary</h3>
+              <p className="mt-2 text-sm text-zinc-300">{result.summary}</p>
+            </article>
+
+            <article className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6">
+              <h3 className="text-lg font-semibold text-white">Where to Start</h3>
+              <p className="mt-2 text-sm text-zinc-300">{result.whereToStart}</p>
+            </article>
           </section>
         ) : null}
 

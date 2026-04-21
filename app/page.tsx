@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import {
+  useAuth,
   SignInButton,
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { useRepoAnalysis } from "@/hooks/useRepoAnalysis";
 
 const exampleRepos = [
   "https://github.com/vercel/next.js",
@@ -27,8 +31,13 @@ const features = [
   },
 ];
 
-export default async function HomePage() {
-  const { userId } = await auth();
+export default function HomePage() {
+  const { userId } = useAuth();
+  const { url, setUrl, isLoading, error, repoData, treeData, step, analyzeRepo } =
+    useRepoAnalysis();
+  const totalFiles = treeData?.filter((item) => item.type === "blob").length ?? 0;
+  const totalFolders = treeData?.filter((item) => item.type === "tree").length ?? 0;
+  const topPaths = treeData?.slice(0, 10) ?? [];
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white">
@@ -79,20 +88,41 @@ export default async function HomePage() {
             by AI - like a senior dev walking you through the code
           </p>
 
-          <form className="mt-8 w-full">
+          <form
+            className="mt-8 w-full"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void analyzeRepo(url);
+            }}
+          >
             <div className="flex w-full flex-col gap-3 sm:flex-row">
               <input
                 type="url"
                 placeholder="https://github.com/owner/repo"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                disabled={isLoading}
                 className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-purple-500"
               />
               <button
                 type="submit"
+                disabled={isLoading}
                 className="h-12 rounded-xl bg-linear-to-r from-purple-500 to-blue-500 px-6 text-sm font-semibold text-white transition hover:from-purple-400 hover:to-blue-400"
               >
-                Analyze Repo
+                {isLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </span>
+                ) : (
+                  "Analyze Repo"
+                )}
               </button>
             </div>
+            {error ? <p className="mt-3 text-left text-sm text-red-400">{error}</p> : null}
+            {isLoading && step ? (
+              <p className="mt-3 text-left text-sm text-zinc-300">{step}</p>
+            ) : null}
           </form>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -109,6 +139,50 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        {repoData ? (
+          <section className="mx-auto mt-2 w-full max-w-3xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h2 className="text-2xl font-bold text-white">{repoData.full_name}</h2>
+            <p className="mt-2 text-zinc-300">
+              {repoData.description ?? "No description provided."}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <span className="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1">
+                {repoData.language ?? "Unknown"}
+              </span>
+              <span className="text-zinc-200">⭐ {repoData.stars}</span>
+              <span className="text-zinc-200">🍴 {repoData.forks}</span>
+              <span className="text-zinc-200">
+                Default branch: {repoData.default_branch}
+              </span>
+            </div>
+            <a
+              href={repoData.html_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-block text-sm text-blue-300 underline-offset-4 hover:underline"
+            >
+              Open on GitHub
+            </a>
+          </section>
+        ) : null}
+
+        {treeData ? (
+          <section className="mx-auto mt-4 w-full max-w-3xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-200">
+              <p>Total files: {totalFiles}</p>
+              <p>Total folders: {totalFolders}</p>
+            </div>
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+              <p className="mb-3 text-sm font-medium text-zinc-300">Top 10 file paths</p>
+              <ul className="space-y-1 font-mono text-xs text-zinc-200">
+                {topPaths.map((item) => (
+                  <li key={item.sha}>{item.path}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid grid-cols-1 gap-4 pb-6 md:grid-cols-3">
           {features.map((feature) => (

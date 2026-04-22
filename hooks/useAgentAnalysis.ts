@@ -70,7 +70,16 @@ export function useAgentAnalysis() {
           if (eventName === "started") {
             setCurrentStep("Analysis started...");
           } else if (eventName === "step") {
-            setSteps((prev) => [...prev, data]);
+            setSteps((prev) => {
+              const exists = prev.findIndex((step) => step.id === data.id);
+              if (exists >= 0) {
+                const updated = [...prev];
+                updated[exists] = data;
+                return updated;
+              }
+
+              return [...prev, data];
+            });
             if (data.name) {
               setCurrentStep(data.name);
             }

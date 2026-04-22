@@ -24,9 +24,9 @@ export function ProgressStream({
       </div>
 
       <ul className="mt-4 space-y-3">
-        {steps.map((step) => (
+        {steps.map((step, index) => (
           <li
-            key={`${step.id}-${step.name}-${step.status}`}
+            key={`${step.id}-${index}`}
             className={`flex items-center gap-2 text-sm ${
               step.status === "running" ? "animate-pulse" : ""
             }`}

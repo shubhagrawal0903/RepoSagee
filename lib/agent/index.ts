@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import type { AgentContext, AgentStep, AnalysisResult, TechStack } from "@/lib/agent/types";
 import { AGENT_TOOLS, executeToolCall } from "@/lib/agent/tools";
 import { SYSTEM_PROMPT, ANALYSIS_PROMPT } from "@/lib/agent/prompts";
@@ -65,16 +65,14 @@ export async function runRepoSageAgent(
       fetchedFiles: {},
     };
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction: SYSTEM_PROMPT,
-      tools: [{ functionDeclarations: AGENT_TOOLS }],
-      toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+    const openrouter = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY!,
+      defaultHeaders: {
+        "HTTP-Referer": "https://reposage.vercel.app",
+        "X-Title": "RepoSage",
+      },
     });
-
-    const chat = model.startChat();
-    const initialPrompt = ANALYSIS_PROMPT(context);
 
     onStepUpdate({
       id: "analyze",
@@ -82,65 +80,62 @@ export async function runRepoSageAgent(
       status: "running",
     });
 
-    let response = await chat.sendMessage(initialPrompt);
+    const messages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: ANALYSIS_PROMPT(context) },
+    ];
     let isComplete = false;
     let analysisResult: Partial<AnalysisResult> = {};
     let iterationCount = 0;
     const MAX_ITERATIONS = 15;
 
-    // AGENTIC LOOP: Gemini autonomously decides which tools to call
-    // based on previous results until analysis is complete
     while (!isComplete && iterationCount < MAX_ITERATIONS) {
       iterationCount++;
 
-      const parts = response.response.candidates?.[0]?.content?.parts ?? [];
-      let hasFunctionCall = false;
-      let hasText = false;
+      const response = await openrouter.chat.completions.create({
+        model: "meta-llama/llama-3.3-70b-instruct",
+        messages,
+        tools: AGENT_TOOLS,
+        tool_choice: "auto",
+        max_tokens: 4000,
+      });
 
-      for (const part of parts) {
-        if ("text" in part && part.text) {
-          hasText = true;
-          console.log("[RepoSage]", part.text);
-        }
+      const message = response.choices[0].message;
+      messages.push(message);
 
-        if ("functionCall" in part && part.functionCall) {
-          hasFunctionCall = true;
-          const toolName = part.functionCall.name;
-          const toolArgs = (part.functionCall.args as Record<string, any>) ?? {};
-
-          onStepUpdate({
-            id: toolName,
-            name: `Agent: calling ${toolName}`,
-            status: "running",
-          });
-
-          const toolResult = await executeToolCall(toolName, toolArgs, context);
-
-          onStepUpdate({
-            id: toolName,
-            name: `Agent: ${toolName} complete`,
-            status: "complete",
-          });
-
-          if (toolResult.isComplete) {
-            isComplete = true;
-            analysisResult = toolResult.analysisResult ?? {};
-            break;
-          }
-
-          response = await chat.sendMessage([
-            {
-              functionResponse: {
-                name: toolName,
-                response: { result: toolResult.result },
-              },
-            },
-          ]);
-        }
+      if (!message.tool_calls || message.tool_calls.length === 0) {
+        break;
       }
 
-      if (!hasFunctionCall && !hasText) {
-        break;
+      for (const toolCall of message.tool_calls) {
+        const toolName = toolCall.function.name;
+        const toolArgs = JSON.parse(toolCall.function.arguments);
+
+        onStepUpdate({
+          id: toolName,
+          name: "Agent: " + toolName.replace(/_/g, " "),
+          status: "running",
+        });
+
+        const toolResult = await executeToolCall(toolName, toolArgs, context);
+
+        onStepUpdate({
+          id: toolName,
+          name: "Agent: " + toolName.replace(/_/g, " "),
+          status: "complete",
+        });
+
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: toolResult.result,
+        });
+
+        if (toolResult.isComplete) {
+          isComplete = true;
+          analysisResult = toolResult.analysisResult || {};
+          break;
+        }
       }
     }
 

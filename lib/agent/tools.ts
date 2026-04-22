@@ -26,144 +26,162 @@ const TECH_STACK_PROPERTIES = {
 
 export const AGENT_TOOLS = [
   {
-    name: "fetch_file",
-    description: "Fetch the content of a specific file from the repository",
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "The file path relative to repo root",
-        },
-      },
-      required: ["path"],
-    },
-  },
-  {
-    name: "fetch_multiple_files",
-    description: "Fetch contents of multiple files at once",
-    parameters: {
-      type: "object",
-      properties: {
-        paths: {
-          type: "array",
-          items: { type: "string" },
-          description: "Array of file paths to fetch",
-        },
-      },
-      required: ["paths"],
-    },
-  },
-  {
-    name: "analyze_tech_stack",
-    description:
-      "Analyze package.json and config files to identify the complete tech stack",
-    parameters: {
-      type: "object",
-      properties: {
-        focus_areas: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Specific areas to focus on like auth, database, styling",
-        },
-      },
-    },
-  },
-  {
-    name: "identify_entry_points",
-    description:
-      "Identify the main entry points and important files in the codebase",
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    name: "generate_mermaid_diagram",
-    description:
-      "Generate a Mermaid architecture diagram based on the analyzed codebase",
-    parameters: {
-      type: "object",
-      properties: {
-        diagram_type: {
-          type: "string",
-          description: "flowchart or graph",
-        },
-        focus: {
-          type: "string",
-          description:
-            "What aspect to diagram — data flow, component tree, api routes",
-        },
-      },
-      required: ["diagram_type"],
-    },
-  },
-  {
-    name: "complete_analysis",
-    description: "Mark analysis as complete and return the final structured result",
-    parameters: {
-      type: "object",
-      properties: {
-        summary: {
-          type: "string",
-          description: "2-3 sentence repo summary",
-        },
-        tech_stack: {
-          type: "object",
-          properties: TECH_STACK_PROPERTIES,
-          required: Object.keys(TECH_STACK_PROPERTIES),
-        },
-        key_files: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              path: { type: "string" },
-              purpose: { type: "string" },
-              importance: { type: "string" },
-            },
-            required: ["path", "purpose", "importance"],
+    type: "function",
+    function: {
+      name: "fetch_file",
+      description: "Fetch the content of a specific file from the repository",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "The file path relative to repo root",
           },
         },
-        mermaid_diagram: {
-          type: "string",
-          description: "Valid mermaid diagram code",
-        },
-        diagram_description: {
-          type: "string",
-        },
-        onboarding_sections: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              content: { type: "string" },
-              order: { type: "number" },
-            },
-            required: ["title", "content", "order"],
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "fetch_multiple_files",
+      description: "Fetch contents of multiple files at once",
+      parameters: {
+        type: "object",
+        properties: {
+          paths: {
+            type: "array",
+            items: { type: "string" },
+            description: "Array of file paths to fetch",
           },
         },
-        where_to_start: {
-          type: "string",
-          description: "Step by step guide for day 1",
-        },
-        estimated_complexity: {
-          type: "string",
-          description: "simple | moderate | complex",
+        required: ["paths"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_tech_stack",
+      description:
+        "Analyze package.json and config files to identify the complete tech stack",
+      parameters: {
+        type: "object",
+        properties: {
+          focus_areas: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Specific areas to focus on like auth, database, styling",
+          },
         },
       },
-      required: [
-        "summary",
-        "tech_stack",
-        "key_files",
-        "mermaid_diagram",
-        "diagram_description",
-        "onboarding_sections",
-        "where_to_start",
-        "estimated_complexity",
-      ],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "identify_entry_points",
+      description:
+        "Identify the main entry points and important files in the codebase",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_mermaid_diagram",
+      description:
+        "Generate a Mermaid architecture diagram based on the analyzed codebase",
+      parameters: {
+        type: "object",
+        properties: {
+          diagram_type: {
+            type: "string",
+            description: "flowchart or graph",
+          },
+          focus: {
+            type: "string",
+            description:
+              "What aspect to diagram — data flow, component tree, api routes",
+          },
+        },
+        required: ["diagram_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_analysis",
+      description: "Mark analysis as complete and return the final structured result",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "2-3 sentence repo summary",
+          },
+          tech_stack: {
+            type: "object",
+            properties: TECH_STACK_PROPERTIES,
+            required: Object.keys(TECH_STACK_PROPERTIES),
+          },
+          key_files: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                path: { type: "string" },
+                purpose: { type: "string" },
+                importance: { type: "string" },
+              },
+              required: ["path", "purpose", "importance"],
+            },
+          },
+          mermaid_diagram: {
+            type: "string",
+            description: "Valid mermaid diagram code",
+          },
+          diagram_description: {
+            type: "string",
+          },
+          onboarding_sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                content: { type: "string" },
+                order: { type: "number" },
+              },
+              required: ["title", "content", "order"],
+            },
+          },
+          where_to_start: {
+            type: "string",
+            description: "Step by step guide for day 1",
+          },
+          estimated_complexity: {
+            type: "string",
+            description: "simple | moderate | complex",
+          },
+        },
+        required: [
+          "summary",
+          "tech_stack",
+          "key_files",
+          "mermaid_diagram",
+          "diagram_description",
+          "onboarding_sections",
+          "where_to_start",
+          "estimated_complexity",
+        ],
+      },
     },
   },
 ];
@@ -178,17 +196,25 @@ async function fetchFileWithCache(path: string, context: AgentContext) {
   return file.content;
 }
 
-function getDefaultTechStack(): TechStack {
+function normalizeTechStack(input: unknown): TechStack {
+  const value = typeof input === "object" && input !== null ? input : {};
+  const source = value as Record<string, unknown>;
+
+  const toStringArray = (field: string): string[] =>
+    Array.isArray(source[field])
+      ? source[field].filter((item): item is string => typeof item === "string")
+      : [];
+
   return {
-    frameworks: [],
-    languages: [],
-    orms: [],
-    auth: [],
-    databases: [],
-    styling: [],
-    testing: [],
-    devtools: [],
-    other: [],
+    frameworks: toStringArray("frameworks"),
+    languages: toStringArray("languages"),
+    orms: toStringArray("orms"),
+    auth: toStringArray("auth"),
+    databases: toStringArray("databases"),
+    styling: toStringArray("styling"),
+    testing: toStringArray("testing"),
+    devtools: toStringArray("devtools"),
+    other: toStringArray("other"),
   };
 }
 
@@ -322,7 +348,7 @@ export async function executeToolCall(
         const analysisResult: Partial<AnalysisResult> = {
           repoUrl: context.repoMetadata.html_url,
           repoName: context.repoMetadata.full_name,
-          techStack: (toolArgs.tech_stack as TechStack) ?? getDefaultTechStack(),
+          techStack: normalizeTechStack(toolArgs.tech_stack),
           keyFiles: Array.isArray(toolArgs.key_files) ? toolArgs.key_files : [],
           architecture: {
             mermaid:

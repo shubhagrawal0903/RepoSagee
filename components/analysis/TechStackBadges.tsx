@@ -1,7 +1,7 @@
 import type { TechStack } from "@/lib/agent/types";
 
 type TechStackBadgesProps = {
-  techStack: TechStack;
+  techStack?: TechStack | null;
 };
 
 type CategoryConfig = {
@@ -10,51 +10,57 @@ type CategoryConfig = {
   badgeClass: string;
 };
 
+function safeItems(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 export function TechStackBadges({ techStack }: TechStackBadgesProps) {
   const categories: CategoryConfig[] = [
     {
       label: "Frameworks",
-      items: techStack.frameworks,
+      items: safeItems(techStack?.frameworks),
       badgeClass: "bg-blue-500/20 text-blue-200 border-blue-400/30",
     },
     {
       label: "Languages",
-      items: techStack.languages,
+      items: safeItems(techStack?.languages),
       badgeClass: "bg-cyan-500/20 text-cyan-200 border-cyan-400/30",
     },
     {
       label: "ORMs",
-      items: techStack.orms,
+      items: safeItems(techStack?.orms),
       badgeClass: "bg-green-500/20 text-green-200 border-green-400/30",
     },
     {
       label: "Databases",
-      items: techStack.databases,
+      items: safeItems(techStack?.databases),
       badgeClass: "bg-green-500/20 text-green-200 border-green-400/30",
     },
     {
       label: "Auth",
-      items: techStack.auth,
+      items: safeItems(techStack?.auth),
       badgeClass: "bg-purple-500/20 text-purple-200 border-purple-400/30",
     },
     {
       label: "Styling",
-      items: techStack.styling,
+      items: safeItems(techStack?.styling),
       badgeClass: "bg-pink-500/20 text-pink-200 border-pink-400/30",
     },
     {
       label: "Testing",
-      items: techStack.testing,
+      items: safeItems(techStack?.testing),
       badgeClass: "bg-yellow-500/20 text-yellow-200 border-yellow-400/30",
     },
     {
       label: "Devtools",
-      items: techStack.devtools,
+      items: safeItems(techStack?.devtools),
       badgeClass: "bg-zinc-500/20 text-zinc-200 border-zinc-400/30",
     },
     {
       label: "Other",
-      items: techStack.other,
+      items: safeItems(techStack?.other),
       badgeClass: "bg-slate-500/20 text-slate-200 border-slate-400/30",
     },
   ];
